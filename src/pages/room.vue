@@ -1,85 +1,92 @@
+/* eslint no-use-before-define: 0 */
 <template>
-  <div class="app body">
-    <div class="startModal">
-      <div class="eclipse hide" style="opacity: 1;"></div>
-      <div>
-        <h3 class="q-pa-md title">Código da sala</h3>
-        <div class="alignItems">
-          <span class="subr">
-            SUBR-
-          </span>
-          <q-input v-model="uuid" dark color="purple" label-color="white" class="input" mask="xxxxxxxx" />
-          <!-- <q-input v-model="nome" dark color="purple" label-color="white" class="input" mask="xxxxxxxx" /> -->
-
-        </div>
-      </div>
+  <div class="app body room">
+    <div class="container">
+      <p class="uuid">Código da sala: <a target="_blank" :href="`http://localhost:9090/#/room/${id}`">{{ id }}</a> </p>
       <div class="buttonsContainer">
-        <q-btn class="primarybutton q-pa-md" color="primary" label="Entrar na sala" @click="enterInARoom(uuid)" />
-        <q-btn class="primarybutton" color="purple" label="Criar uma nova sala" @click="createNewRoom()" />
+        <button :class="`mic ${isRecording ? 'recording' : ''}`" @click="toggleMic">
+          {{ isRecording ? 'Parar gravação' : 'Começar gravar' }}
+        </button>
+        <button class="saveText" @click="saveTextButton()">Salvar texto</button>
+        <button class="saveFile" @click="makeFileWithText()">Salvar arquivo com todo texto</button>
       </div>
+      <div class="textWrapper">
+        <div class="socketmessage transcript" v-text="socketmessage"></div>
+      </div>
+      <!-- <div class="textWrapper">
+        <div v-text="totalText">
+        </div>
+        {{ totalText }}
+        {{ saveText }}
+      </div> -->
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { io } from 'socket.io-client';
-import { useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
+import { URL } from 'url';
 
 const socket = io('http://localhost:9999');
-
-const uuid = ref('');
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call
+const router = useRoute();
+const id = router.params.id;
+// const uuid = ref('');
 const transcript = ref('');
 const socketmessage = ref('');
 const isRecording = ref(false);
 let silenceTimeout = null; // Temporizador de silêncio
 let recognition;
-const nome = ref('');
+let saveText;
+const totalText = ref([]);
 
-const router = useRouter();
-async function redirectToRoom(roomId) {
+
+
+const saveTextButton = () => {
+  console.log('salvando texto');
+  console.log(transcript.value);
   // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-  await router.push({ name: 'room', params: { id: roomId } });
-};
-
-
-async function enterInARoom(code) {
-  console.log(code);
-  socket.emit('joinRoom', code);
-
-  socket.on('message', (message) => {
-    socketmessage.value = message;
-  });
+  //verify if totalText already contain an array with the exact same text
+  if (totalText.value.includes(transcript.value)) {
+    console.log('Texto já salvo');
+    return;
+  }
+  totalText.value.push(transcript.value);
+  console.log(totalText.value);
   // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-  await redirectToRoom(code)
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  return saveText.value;
 }
 
-async function createNewRoom() {
-  uuid.value = CreateUUID();
-  socket.emit('createRoom', uuid.value);
-  await enterInARoom(uuid.value);
-  await redirectToRoom(uuid.value);
+const makeFileWithText = () => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  // fs.writeFile('transcript.txt', totalText.value, (err) => {
+  //   if (err) {
+  //     console.log(err);
+  //   } else {
+  //     console.log('File created');
+  //   }
+  // });
 }
+
+
+onMounted(() => {
+  socket.emit('joinRoom', id);
+})
 
 const sendWordsToBackend = () => {
   socket.emit('sendWords', transcript.value);
 };
 
+
 socket.on('wordsReceived', (data) => {
   socketmessage.value = data;
   console.log(data);
-  socket.emit('checkRoom', 'room1');
+  socket.emit('checkRoom', id, id);
 });
 
-
-socket.on('checkRoomResponse', (isInRoom) => {
-  console.log('is in roiom', isInRoom);
-  if (isInRoom) {
-    console.log('Client is in room1');
-  } else {
-    console.log('Client is not in room1');
-  }
-});
 
 socket.on('sendWords', (data) => {
   console.log(data);
@@ -101,6 +108,10 @@ recognition.onstart = () => {
 recognition.onend = () => {
   console.log('Speech recognition stopped');
   isRecording.value = false;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  totalText.value.push(transcript.value);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  recognition.start();
   // Reinicie o temporizador de silêncio após o término
 };
 
@@ -130,17 +141,18 @@ recognition.onresult = (event) => {
 };
 
 
-
-// Função para iniciar o temporizador de silêncio
-
-const CreateUUID = () => {
-  return 'SUBRxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
+const toggleMic = () => {
+  if (isRecording.value) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    recognition.stop();
+  } else {
+    // transcript.value = '';
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    recognition.start();
+  }
 };
 
+// Função para iniciar o temporizador de silêncio
 
 </script>
 
@@ -150,6 +162,30 @@ const CreateUUID = () => {
   padding: 0;
   box-sizing: border-box;
   font-family: 'Fira sans', sans-serif;
+}
+
+.room {
+  display: flex;
+  flex-direction: row;
+}
+
+button {
+  width: 291px;
+}
+
+.textWrapper {
+  margin-top: 10px;
+  width: 80dvw;
+  height: 50dvh;
+  overflow: scroll;
+  border-radius: 15px;
+  border: 1px solid white
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .uuid {
@@ -295,8 +331,18 @@ body {
   color: #fff;
 }
 
-.primarybutton {
-  padding: 10px 20px;
+.textWrapper::-webkit-scrollbar {
+  width: 10px;
+  height: 100%;
+}
+
+.textWrapper::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+.textWrapper::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 .buttonsContainer {

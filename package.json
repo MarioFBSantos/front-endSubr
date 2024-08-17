@@ -6,7 +6,7 @@
   "author": "Mario Santos <mariosantos3197@gmail.com>",
   "private": true,
   "scripts": {
-    "lint": "eslint --ext .js,.ts,.vue ./",
+    "lint": "eslint --ext  ./",
     "format": "prettier --write \"**/*.{js,ts,vue,scss,html,md,json}\" --ignore-path .gitignore",
     "test": "echo \"No test specified\" && exit 0"
   },
@@ -16,6 +16,7 @@
     "assert": "^2.1.0",
     "axios": "^0.21.1",
     "core-js": "^3.6.5",
+    "fs": "^0.0.1-security",
     "http": "^0.0.1-security",
     "https": "^1.0.0",
     "net": "^1.0.2",

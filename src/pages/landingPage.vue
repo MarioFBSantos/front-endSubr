@@ -8,7 +8,7 @@
         com deficiência auditiva a acessibilidade.
       </p>
       <div>
-        <a class="button-29" href="/#/room" role="button">Usar Aplicação</a>
+        <a class="button-29" href="/#/lobby" role="button">Usar Aplicação</a>
       </div>
       <div class="image">
         <img class="prop" src=".././images/earglass.png" />
